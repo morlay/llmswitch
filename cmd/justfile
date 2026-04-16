@@ -1,0 +1,22 @@
+root := absolute_path(source_directory() + "/..")
+commands_root := source_directory()
+
+# List available recipes.
+default:
+    @just --list
+
+# Build a command package executable.
+build cmd configuration="debug":
+    #!/usr/bin/env sh
+    set -eu
+    package_dir="{{commands_root}}/{{cmd}}"
+    cd "{{root}}"
+    just swift build "$package_dir" "{{cmd}}" "{{configuration}}"
+
+# Run a command package executable.
+run cmd *args:
+    #!/usr/bin/env sh
+    set -eu
+    package_dir="{{commands_root}}/{{cmd}}"
+    cd "{{root}}"
+    just swift run "$package_dir" "{{cmd}}" {{args}}

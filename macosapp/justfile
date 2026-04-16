@@ -1,0 +1,58 @@
+root := absolute_path(source_directory() + "/..")
+apps_root := source_directory()
+debug_root := root + "/Build/Debug"
+
+# List available recipes.
+default:
+    @just --list
+
+# Build the debug `.app` bundle for an app.
+build app:
+    #!/usr/bin/env sh
+    set -eu
+    package_dir="{{apps_root}}/{{app}}"
+    product_name="{{app}}App"
+    info_plist="$package_dir/Support/{{app}}-Info.plist"
+    app_bundle="{{debug_root}}/{{app}}.app"
+
+    test -f "$package_dir/Package.swift"
+    test -f "$info_plist"
+
+    mkdir -p "{{debug_root}}"
+    cd "{{root}}"
+    just swift build "$package_dir" "$product_name"
+    bin_dir="$(just swift show-bin-path "$package_dir")"
+    bin_path="$bin_dir/$product_name"
+
+    rm -rf "$app_bundle"
+    mkdir -p "$app_bundle/Contents/MacOS" "$app_bundle/Contents/Resources"
+    cp "$info_plist" "$app_bundle/Contents/Info.plist"
+    cp "$bin_path" "$app_bundle/Contents/MacOS/{{app}}"
+    chmod +x "$app_bundle/Contents/MacOS/{{app}}"
+
+    if command -v codesign >/dev/null 2>&1; then
+      codesign --force --deep --sign - "$app_bundle" >/dev/null 2>&1 || true
+    fi
+
+    printf '%s\n' "$app_bundle"
+
+# Build and install the debug app into `~/Applications`.
+install app: (build app)
+    #!/usr/bin/env sh
+    set -eu
+    app_bundle="{{debug_root}}/{{app}}.app"
+    dest_root="$HOME/Applications"
+    installed_app="$dest_root/{{app}}.app"
+
+    mkdir -p "$dest_root"
+    rm -rf "$installed_app"
+    cp -R "$app_bundle" "$installed_app"
+    printf '%s\n' "$installed_app"
+
+# Build, install, and relaunch the app.
+restart app: (install app)
+    #!/usr/bin/env sh
+    set -eu
+    installed_app="$HOME/Applications/{{app}}.app"
+    pkill -x "{{app}}" >/dev/null 2>&1 || true
+    open "$installed_app"

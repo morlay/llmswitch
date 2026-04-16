@@ -1,0 +1,93 @@
+root := absolute_path(source_directory() + "/../..")
+
+# List available recipes.
+default:
+    @just --list
+
+# Build a Swift package product.
+build package_dir product configuration="debug":
+    #!/usr/bin/env sh
+    set -eu
+    case "{{package_dir}}" in
+      /*) package_dir="{{package_dir}}" ;;
+      *) package_dir="{{invocation_directory()}}/{{package_dir}}" ;;
+    esac
+    package_dir="$(cd "$package_dir" && pwd)"
+    test -f "$package_dir/Package.swift"
+    case "$package_dir" in
+      "{{root}}"/*) scratch_name="${package_dir#"{{root}}"/}" ;;
+      *) scratch_name="$(basename "$package_dir")" ;;
+    esac
+    scratch_name="$(printf '%s' "$scratch_name" | tr '/:' '__')"
+    scratch_dir="{{root}}/.build/$scratch_name"
+    clang_module_cache="$scratch_dir/clang-module-cache"
+    swiftpm_module_cache="$scratch_dir/swiftpm-module-cache"
+    mkdir -p "$scratch_dir"
+    cd "$package_dir"
+    env CLANG_MODULE_CACHE_PATH="$clang_module_cache" SWIFTPM_MODULECACHE_OVERRIDE="$swiftpm_module_cache" swift build --scratch-path "$scratch_dir" --disable-sandbox --product "{{product}}" -c "{{configuration}}"
+
+# Print the Swift package bin path.
+show-bin-path package_dir configuration="debug":
+    #!/usr/bin/env sh
+    set -eu
+    case "{{package_dir}}" in
+      /*) package_dir="{{package_dir}}" ;;
+      *) package_dir="{{invocation_directory()}}/{{package_dir}}" ;;
+    esac
+    package_dir="$(cd "$package_dir" && pwd)"
+    test -f "$package_dir/Package.swift"
+    case "$package_dir" in
+      "{{root}}"/*) scratch_name="${package_dir#"{{root}}"/}" ;;
+      *) scratch_name="$(basename "$package_dir")" ;;
+    esac
+    scratch_name="$(printf '%s' "$scratch_name" | tr '/:' '__')"
+    scratch_dir="{{root}}/.build/$scratch_name"
+    clang_module_cache="$scratch_dir/clang-module-cache"
+    swiftpm_module_cache="$scratch_dir/swiftpm-module-cache"
+    mkdir -p "$scratch_dir"
+    cd "$package_dir"
+    env CLANG_MODULE_CACHE_PATH="$clang_module_cache" SWIFTPM_MODULECACHE_OVERRIDE="$swiftpm_module_cache" swift build --scratch-path "$scratch_dir" --disable-sandbox --show-bin-path -c "{{configuration}}"
+
+# Run the Swift test suite for a package.
+test package_dir:
+    #!/usr/bin/env sh
+    set -eu
+    case "{{package_dir}}" in
+      /*) package_dir="{{package_dir}}" ;;
+      *) package_dir="{{invocation_directory()}}/{{package_dir}}" ;;
+    esac
+    package_dir="$(cd "$package_dir" && pwd)"
+    test -f "$package_dir/Package.swift"
+    case "$package_dir" in
+      "{{root}}"/*) scratch_name="${package_dir#"{{root}}"/}" ;;
+      *) scratch_name="$(basename "$package_dir")" ;;
+    esac
+    scratch_name="$(printf '%s' "$scratch_name" | tr '/:' '__')"
+    scratch_dir="{{root}}/.build/$scratch_name"
+    clang_module_cache="$scratch_dir/clang-module-cache"
+    swiftpm_module_cache="$scratch_dir/swiftpm-module-cache"
+    mkdir -p "$scratch_dir"
+    cd "$package_dir"
+    env CLANG_MODULE_CACHE_PATH="$clang_module_cache" SWIFTPM_MODULECACHE_OVERRIDE="$swiftpm_module_cache" swift test --scratch-path "$scratch_dir" --disable-sandbox
+
+# Run a Swift executable in a package directory.
+run package_dir product *args:
+    #!/usr/bin/env sh
+    set -eu
+    case "{{package_dir}}" in
+      /*) package_dir="{{package_dir}}" ;;
+      *) package_dir="{{invocation_directory()}}/{{package_dir}}" ;;
+    esac
+    package_dir="$(cd "$package_dir" && pwd)"
+    test -f "$package_dir/Package.swift"
+    case "$package_dir" in
+      "{{root}}"/*) scratch_name="${package_dir#"{{root}}"/}" ;;
+      *) scratch_name="$(basename "$package_dir")" ;;
+    esac
+    scratch_name="$(printf '%s' "$scratch_name" | tr '/:' '__')"
+    scratch_dir="{{root}}/.build/$scratch_name"
+    clang_module_cache="$scratch_dir/clang-module-cache"
+    swiftpm_module_cache="$scratch_dir/swiftpm-module-cache"
+    mkdir -p "$scratch_dir"
+    cd "$package_dir"
+    env CLANG_MODULE_CACHE_PATH="$clang_module_cache" SWIFTPM_MODULECACHE_OVERRIDE="$swiftpm_module_cache" swift run --scratch-path "$scratch_dir" --disable-sandbox "{{product}}" {{args}}
