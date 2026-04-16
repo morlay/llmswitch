@@ -1,0 +1,9 @@
+package_dir := source_directory()
+
+default:
+    @just --list
+
+serve *args:
+    #!/usr/bin/env sh
+    cd "{{ package_dir }}"
+    CLANG_MODULE_CACHE_PATH=.build/ModuleCache SWIFTPM_ENABLE_PLUGINS=0 swift run llmswitch {{ args }}
